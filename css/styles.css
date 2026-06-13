@@ -200,3 +200,86 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+select {
+  width: 100%;
+  background: #080c16;
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.workout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.workout-item p {
+  margin: 6px 0;
+}
+
+.workout-item small {
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.danger-btn {
+  border: none;
+  border-radius: 10px;
+  background: #ef4444;
+  color: white;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .workout-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .danger-btn {
+    width: 100%;
+  }
+}
+
+.target-preview {
+  background: #080c16;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  color: var(--muted);
+}
+
+.target-preview strong {
+  color: var(--white);
+}
+
+select {
+  width: 100%;
+  background: #080c16;
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

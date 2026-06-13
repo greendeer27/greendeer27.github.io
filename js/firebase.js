@@ -3,11 +3,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
-  getDocs,
   doc,
-  updateDoc,
-  deleteDoc,
+  getDoc,
+  getDocs,
+  setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
@@ -24,27 +23,128 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export async function addWorkout(workout) {
-  return await addDoc(collection(db, "workouts"), {
-    ...workout,
-    createdAt: serverTimestamp()
+export const MACHINES = [
+  "Biceps",
+  "Triceps",
+  "Assist Chin",
+  "Decline Chest Press",
+  "Pectoral Fly",
+  "Pulldown",
+  "Shoulder Press",
+  "Shoulder Press Auto",
+  "Row"
+];
+
+export function getTodayId() {
+  return new Date().toISOString().split("T")[0];
+}
+
+export async function getDailyWorkout(dateId = getTodayId()) {
+  const ref = doc(db, "dailyWorkouts", dateId);
+  const snapshot = await getDoc(ref);
+
+  if (!snapshot.exists()) {
+    return {
+      date: dateId,
+      workouts: []
+    };
+  }
+
+  return snapshot.data();
+}
+
+export async function getAllDailyWorkouts() {
+  const snapshot = await getDocs(collection(db, "dailyWorkouts"));
+
+  return snapshot.docs
+    .map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function saveDailyWorkout(dateId, workouts) {
+  const ref = doc(db, "dailyWorkouts", dateId);
+
+  return await setDoc(
+    ref,
+    {
+      date: dateId,
+      workouts,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+}
+
+export async function getMachineTarget(machine) {
+  const ref = doc(db, "machineTargets", machine);
+  const snapshot = await getDoc(ref);
+
+  if (!snapshot.exists()) {
+    throw new Error(`No target weight found in Firestore for ${machine}.`);
+  }
+
+  const data = snapshot.data();
+  return Number(data.targetWeight);
+}
+
+export async function setMachineTarget(machine, targetWeight) {
+  const ref = doc(db, "machineTargets", machine);
+
+  return await setDoc(
+    ref,
+    {
+      machine,
+      targetWeight: Number(targetWeight),
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+}
+
+export async function getMachineTargets() {
+  const snapshot = await getDocs(collection(db, "machineTargets"));
+
+  const targets = {};
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    targets[data.machine] = Number(data.targetWeight);
   });
+
+  return targets;
 }
 
-export async function getWorkouts() {
-  const snapshot = await getDocs(collection(db, "workouts"));
-  return snapshot.docs.map(docSnap => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+export async function addWorkoutToToday(machine, reps) {
+  const dateId = getTodayId();
+  const targetWeight = await getMachineTarget(machine);
+  const currentDay = await getDailyWorkout(dateId);
+
+  const newWorkout = {
+    machine,
+    weight: targetWeight,
+    reps: Number(reps)
+  };
+
+  const updatedWorkouts = [...currentDay.workouts, newWorkout];
+
+  await saveDailyWorkout(dateId, updatedWorkouts);
+
+  if (Number(reps) >= 36) {
+    await setMachineTarget(machine, targetWeight + 5);
+  }
+
+  return newWorkout;
 }
 
-export async function updateWorkout(id, data) {
-  const workoutRef = doc(db, "workouts", id);
-  return await updateDoc(workoutRef, data);
-}
+export async function deleteWorkoutFromDay(dateId, workoutIndex) {
+  const currentDay = await getDailyWorkout(dateId);
 
-export async function deleteWorkout(id) {
-  const workoutRef = doc(db, "workouts", id);
-  return await deleteDoc(workoutRef);
+  const updatedWorkouts = currentDay.workouts.filter((_, index) => {
+    return index !== workoutIndex;
+  });
+
+  return await saveDailyWorkout(dateId, updatedWorkouts);
 }

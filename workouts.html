@@ -28,18 +28,30 @@
       <h2>Add Workout</h2>
 
       <form id="workoutForm" class="form">
-        <input id="exercise" type="text" placeholder="Exercise" required />
-        <input id="weight" type="number" placeholder="Weight" required />
-        <input id="sets" type="number" placeholder="Sets" required />
-        <input id="reps" type="number" placeholder="Reps" required />
-        <textarea id="notes" placeholder="Notes"></textarea>
+        <label>
+          Machine
+          <select id="machine" required></select>
+        </label>
+
+        <div class="target-preview">
+          Current target weight:
+          <strong id="currentTargetWeight">—</strong>
+        </div>
+
+        <label>
+          Reps Completed
+          <div class="slider-row">
+            <input id="reps" type="range" min="0" max="36" value="0" step="1" />
+            <strong id="repsValue">0</strong>
+          </div>
+        </label>
 
         <button type="submit">Save Workout</button>
       </form>
     </section>
 
     <section class="card">
-      <h2>Recent Workouts</h2>
+      <h2>Today’s Workouts</h2>
       <div id="workoutList" class="list"></div>
     </section>
   </main>
