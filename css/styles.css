@@ -268,18 +268,100 @@ label {
   color: var(--white);
 }
 
-select {
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
-  background: #080c16;
-  color: white;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
+  height: 14px;
+  background: linear-gradient(90deg, var(--blue), #67b7ff);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  box-shadow:
+    0 0 18px rgba(22, 119, 255, 0.35),
+    inset 0 0 8px rgba(255, 255, 255, 0.18);
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease,
+    filter 0.25s ease;
 }
 
-label {
-  display: grid;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.9rem;
+input[type="range"]:hover {
+  transform: scaleY(1.12);
+  filter: brightness(1.15);
+  box-shadow:
+    0 0 24px rgba(22, 119, 255, 0.65),
+    inset 0 0 10px rgba(255, 255, 255, 0.25);
+}
+
+input[type="range"]:active {
+  transform: scaleY(1.2);
+  box-shadow:
+    0 0 34px rgba(22, 119, 255, 0.9),
+    inset 0 0 12px rgba(255, 255, 255, 0.32);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 34px;
+  height: 34px;
+  background:
+    radial-gradient(circle at 35% 35%, #ffffff, #8cc8ff 38%, var(--blue) 70%);
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow:
+    0 0 0 6px rgba(22, 119, 255, 0.18),
+    0 0 24px rgba(22, 119, 255, 0.85),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 8px rgba(22, 119, 255, 0.24),
+    0 0 34px rgba(22, 119, 255, 1),
+    0 10px 22px rgba(0, 0, 0, 0.5);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.22);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 14px;
+  background: linear-gradient(90deg, var(--blue), #67b7ff);
+  border-radius: 999px;
+  box-shadow:
+    0 0 18px rgba(22, 119, 255, 0.35),
+    inset 0 0 8px rgba(255, 255, 255, 0.18);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 34px;
+  height: 34px;
+  background: var(--blue);
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow:
+    0 0 0 6px rgba(22, 119, 255, 0.18),
+    0 0 24px rgba(22, 119, 255, 0.85),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 8px rgba(22, 119, 255, 0.24),
+    0 0 34px rgba(22, 119, 255, 1),
+    0 10px 22px rgba(0, 0, 0, 0.5);
 }

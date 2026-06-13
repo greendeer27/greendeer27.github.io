@@ -12,9 +12,7 @@ import {
 const pages = [
   { label: "Dashboard", href: "index.html" },
   { label: "Workouts", href: "workouts.html" },
-  { label: "Progress", href: "progress.html" },
-  { label: "Goals", href: "#" },
-  { label: "Settings", href: "#" }
+  { label: "Progress", href: "progress.html" }
 ];
 
 const sidebar = document.getElementById("sidebar");
