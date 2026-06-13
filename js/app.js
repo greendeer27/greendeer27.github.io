@@ -637,3 +637,14 @@ listenForAuthChanges(async user => {
     await refreshSignedInData();
   }
 });
+
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
+if (isStandalone()) {
+  document.body.classList.add("standalone-app");
+}
