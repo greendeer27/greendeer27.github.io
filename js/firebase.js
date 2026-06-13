@@ -1,6 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 
 import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
+import {
   getFirestore,
   collection,
   doc,
@@ -21,6 +29,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 export const MACHINES = [
@@ -35,12 +44,52 @@ export const MACHINES = [
   "Row"
 ];
 
+export function listenForAuthChanges(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+export async function signInUser(email, password) {
+  return await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function createUser(email, password) {
+  return await createUserWithEmailAndPassword(auth, email, password);
+}
+
+export async function signOutUser() {
+  return await signOut(auth);
+}
+
+export function getCurrentUser() {
+  return auth.currentUser;
+}
+
+function requireUser() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("You must be signed in to access workout data.");
+  }
+
+  return user;
+}
+
+function userCollection(collectionName) {
+  const user = requireUser();
+  return collection(db, "users", user.uid, collectionName);
+}
+
+function userDoc(collectionName, documentId) {
+  const user = requireUser();
+  return doc(db, "users", user.uid, collectionName, documentId);
+}
+
 export function getTodayId() {
   return new Date().toISOString().split("T")[0];
 }
 
 export async function getDailyWorkout(dateId = getTodayId()) {
-  const ref = doc(db, "dailyWorkouts", dateId);
+  const ref = userDoc("dailyWorkouts", dateId);
   const snapshot = await getDoc(ref);
 
   if (!snapshot.exists()) {
@@ -54,7 +103,7 @@ export async function getDailyWorkout(dateId = getTodayId()) {
 }
 
 export async function getAllDailyWorkouts() {
-  const snapshot = await getDocs(collection(db, "dailyWorkouts"));
+  const snapshot = await getDocs(userCollection("dailyWorkouts"));
 
   return snapshot.docs
     .map(docSnap => ({
@@ -65,7 +114,7 @@ export async function getAllDailyWorkouts() {
 }
 
 export async function saveDailyWorkout(dateId, workouts) {
-  const ref = doc(db, "dailyWorkouts", dateId);
+  const ref = userDoc("dailyWorkouts", dateId);
 
   return await setDoc(
     ref,
@@ -79,19 +128,26 @@ export async function saveDailyWorkout(dateId, workouts) {
 }
 
 export async function getMachineTarget(machine) {
-  const ref = doc(db, "machineTargets", machine);
+  const ref = userDoc("machineTargets", machine);
   const snapshot = await getDoc(ref);
 
-  if (!snapshot.exists()) {
-    throw new Error(`No target weight found in Firestore for ${machine}.`);
+  if (snapshot.exists()) {
+    return Number(snapshot.data().targetWeight);
   }
 
-  const data = snapshot.data();
-  return Number(data.targetWeight);
+  const defaultTargetWeight = 10;
+
+  await setDoc(ref, {
+    machine,
+    targetWeight: defaultTargetWeight,
+    updatedAt: serverTimestamp()
+  });
+
+  return defaultTargetWeight;
 }
 
 export async function setMachineTarget(machine, targetWeight) {
-  const ref = doc(db, "machineTargets", machine);
+  const ref = userDoc("machineTargets", machine);
 
   return await setDoc(
     ref,
@@ -105,7 +161,7 @@ export async function setMachineTarget(machine, targetWeight) {
 }
 
 export async function getMachineTargets() {
-  const snapshot = await getDocs(collection(db, "machineTargets"));
+  const snapshot = await getDocs(userCollection("machineTargets"));
 
   const targets = {};
 

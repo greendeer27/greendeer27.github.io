@@ -1,5 +1,9 @@
 import {
   MACHINES,
+  listenForAuthChanges,
+  signInUser,
+  createUser,
+  signOutUser,
   getTodayId,
   getDailyWorkout,
   getAllDailyWorkouts,
@@ -21,6 +25,15 @@ const closeSidebar = document.getElementById("closeSidebar");
 const overlay = document.getElementById("overlay");
 const navLinks = document.getElementById("navLinks");
 
+const userEmail = document.getElementById("userEmail");
+const signOutBtn = document.getElementById("signOutBtn");
+
+const authCard = document.getElementById("authCard");
+const dashboardContent = document.getElementById("dashboardContent");
+const authForm = document.getElementById("authForm");
+const createAccountBtn = document.getElementById("createAccountBtn");
+const authMessage = document.getElementById("authMessage");
+
 const workoutForm = document.getElementById("workoutForm");
 const workoutList = document.getElementById("workoutList");
 const machineSelect = document.getElementById("machine");
@@ -34,10 +47,16 @@ const totalReps = document.getElementById("totalReps");
 
 const progressSessions = document.getElementById("progressSessions");
 const progressVolume = document.getElementById("progressVolume");
+const progressTotalReps = document.getElementById("progressTotalReps");
 const progressAvgReps = document.getElementById("progressAvgReps");
+const progressStreak = document.getElementById("progressStreak");
 const machineStatsTable = document.getElementById("machineStatsTable");
-const volumeTimeline = document.getElementById("volumeTimeline");
+const machineCards = document.getElementById("machineCards");
 const recentTrainingDays = document.getElementById("recentTrainingDays");
+
+const volumeChart = document.getElementById("volumeChart");
+const repsChart = document.getElementById("repsChart");
+const machineVolumeChart = document.getElementById("machineVolumeChart");
 
 function buildSidebar() {
   if (!navLinks) return;
@@ -60,6 +79,35 @@ function openMenu() {
 function closeMenu() {
   sidebar.classList.remove("open");
   overlay.classList.remove("show");
+}
+
+function isHomePage() {
+  const page = window.location.pathname.split("/").pop() || "index.html";
+  return page === "index.html" || page === "";
+}
+
+function setSignedInUi(user) {
+  if (userEmail) {
+    userEmail.textContent = user ? user.email : "Not signed in";
+  }
+
+  if (signOutBtn) {
+    signOutBtn.classList.toggle("hidden", !user);
+  }
+
+  if (authCard) {
+    authCard.classList.toggle("hidden", Boolean(user));
+  }
+
+  if (dashboardContent) {
+    dashboardContent.classList.toggle("hidden", !user);
+  }
+}
+
+function redirectToHomeIfSignedOut(user) {
+  if (!user && !isHomePage()) {
+    window.location.href = "index.html";
+  }
 }
 
 function loadMachineOptions() {
@@ -156,8 +204,33 @@ async function renderTodayWorkouts() {
       await renderTodayWorkouts();
       await renderDashboardStats();
       await renderCurrentTargetWeight();
+      await renderProgressPage();
     });
   });
+}
+
+function calculateCurrentStreak(dailyTimeline) {
+  const activeDates = new Set(
+    dailyTimeline
+      .filter(day => day.workouts > 0)
+      .map(day => day.date)
+  );
+
+  let streak = 0;
+  const cursor = new Date();
+
+  while (true) {
+    const dateId = cursor.toISOString().split("T")[0];
+
+    if (!activeDates.has(dateId)) {
+      break;
+    }
+
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
 }
 
 function calculateProgressStats(days, targets) {
@@ -232,9 +305,142 @@ function calculateProgressStats(days, targets) {
     totalVolume,
     totalRepsValue,
     averageReps: totalSessions ? totalRepsValue / totalSessions : 0,
+    streak: calculateCurrentStreak(dailyTimeline),
     machineStats,
     dailyTimeline
   };
+}
+
+function setupCanvas(canvas) {
+  const context = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const pixelRatio = window.devicePixelRatio || 1;
+
+  canvas.width = rect.width * pixelRatio;
+  canvas.height = rect.height * pixelRatio;
+
+  context.scale(pixelRatio, pixelRatio);
+
+  return {
+    context,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function drawLineChart(canvas, points, labelKey) {
+  if (!canvas) return;
+
+  const { context, width, height } = setupCanvas(canvas);
+
+  context.clearRect(0, 0, width, height);
+
+  const padding = 36;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const values = points.map(point => point[labelKey]);
+  const maxValue = Math.max(...values, 1);
+
+  context.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  context.lineWidth = 1;
+
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (chartHeight / 4) * i;
+    context.beginPath();
+    context.moveTo(padding, y);
+    context.lineTo(width - padding, y);
+    context.stroke();
+  }
+
+  context.strokeStyle = "#1677ff";
+  context.lineWidth = 3;
+  context.shadowColor = "rgba(22, 119, 255, 0.7)";
+  context.shadowBlur = 12;
+  context.beginPath();
+
+  points.forEach((point, index) => {
+    const x = padding + (chartWidth / Math.max(points.length - 1, 1)) * index;
+    const y = padding + chartHeight - (point[labelKey] / maxValue) * chartHeight;
+
+    if (index === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+  });
+
+  context.stroke();
+
+  context.shadowBlur = 0;
+  context.fillStyle = "#f8fbff";
+
+  points.forEach((point, index) => {
+    const x = padding + (chartWidth / Math.max(points.length - 1, 1)) * index;
+    const y = padding + chartHeight - (point[labelKey] / maxValue) * chartHeight;
+
+    context.beginPath();
+    context.arc(x, y, 4, 0, Math.PI * 2);
+    context.fill();
+  });
+
+  context.fillStyle = "rgba(248, 251, 255, 0.7)";
+  context.font = "12px Arial";
+  context.fillText(maxValue.toLocaleString(), padding, 18);
+}
+
+function drawBarChart(canvas, items) {
+  if (!canvas) return;
+
+  const { context, width, height } = setupCanvas(canvas);
+
+  context.clearRect(0, 0, width, height);
+
+  const padding = 34;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const maxValue = Math.max(...items.map(item => item.value), 1);
+  const barGap = 8;
+  const barWidth = chartWidth / items.length - barGap;
+
+  items.forEach((item, index) => {
+    const x = padding + index * (barWidth + barGap);
+    const barHeight = (item.value / maxValue) * chartHeight;
+    const y = padding + chartHeight - barHeight;
+
+    context.fillStyle = "#1677ff";
+    context.shadowColor = "rgba(22, 119, 255, 0.65)";
+    context.shadowBlur = 10;
+    context.fillRect(x, y, Math.max(barWidth, 8), barHeight);
+
+    context.shadowBlur = 0;
+    context.save();
+    context.translate(x + barWidth / 2, height - 8);
+    context.rotate(-Math.PI / 4);
+    context.fillStyle = "rgba(248, 251, 255, 0.72)";
+    context.font = "10px Arial";
+    context.fillText(item.label.slice(0, 10), 0, 0);
+    context.restore();
+  });
+}
+
+function renderCharts(stats) {
+  const activeTimeline = stats.dailyTimeline
+    .filter(day => day.workouts > 0)
+    .slice(-14);
+
+  if (activeTimeline.length > 0) {
+    drawLineChart(volumeChart, activeTimeline, "volume");
+    drawLineChart(repsChart, activeTimeline, "reps");
+  }
+
+  const machineVolumeItems = Object.values(stats.machineStats)
+    .map(machine => ({
+      label: machine.machine,
+      value: machine.volume
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  drawBarChart(machineVolumeChart, machineVolumeItems);
 }
 
 async function renderProgressPage() {
@@ -243,8 +449,11 @@ async function renderProgressPage() {
     !progressVolume &&
     !progressAvgReps &&
     !machineStatsTable &&
-    !volumeTimeline &&
-    !recentTrainingDays
+    !machineCards &&
+    !recentTrainingDays &&
+    !volumeChart &&
+    !repsChart &&
+    !machineVolumeChart
   ) {
     return;
   }
@@ -261,8 +470,16 @@ async function renderProgressPage() {
     progressVolume.textContent = stats.totalVolume.toLocaleString();
   }
 
+  if (progressTotalReps) {
+    progressTotalReps.textContent = stats.totalRepsValue.toLocaleString();
+  }
+
   if (progressAvgReps) {
     progressAvgReps.textContent = stats.averageReps.toFixed(1);
+  }
+
+  if (progressStreak) {
+    progressStreak.textContent = stats.streak;
   }
 
   if (machineStatsTable) {
@@ -286,43 +503,71 @@ async function renderProgressPage() {
       .join("");
   }
 
-  if (volumeTimeline) {
-    const maxVolume = Math.max(...stats.dailyTimeline.map(day => day.volume), 1);
-
-    volumeTimeline.innerHTML = stats.dailyTimeline
-      .filter(day => day.workouts > 0)
-      .slice(-14)
-      .map(day => {
-        const barWidth = Math.max((day.volume / maxVolume) * 100, 4);
+  if (machineCards) {
+    machineCards.innerHTML = Object.values(stats.machineStats)
+      .map(machine => {
+        const completionRate = machine.workouts
+          ? Math.round((machine.targetHits / machine.workouts) * 100)
+          : 0;
 
         return `
-          <div class="timeline-row">
-            <span>${day.date}</span>
-            <div class="timeline-bar-wrap">
-              <div class="timeline-bar" style="width: ${barWidth}%"></div>
+          <article class="machine-stat-card">
+            <div>
+              <h3>${machine.machine}</h3>
+              <span>${machine.workouts} workouts</span>
             </div>
-            <strong>${day.volume.toLocaleString()}</strong>
-          </div>
+            <dl>
+              <div>
+                <dt>Reps</dt>
+                <dd>${machine.reps}</dd>
+              </div>
+              <div>
+                <dt>Volume</dt>
+                <dd>${machine.volume.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Target</dt>
+                <dd>${machine.targetWeight || "—"}</dd>
+              </div>
+              <div>
+                <dt>36-Rep Rate</dt>
+                <dd>${completionRate}%</dd>
+              </div>
+            </dl>
+          </article>
         `;
       })
       .join("");
   }
 
   if (recentTrainingDays) {
-    recentTrainingDays.innerHTML = stats.dailyTimeline
+    const recentDays = stats.dailyTimeline
       .filter(day => day.workouts > 0)
       .slice(-7)
-      .reverse()
-      .map(day => `
-        <div class="workout-item">
-          <div>
-            <strong>${day.date}</strong>
-            <p>${day.workouts} workouts · ${day.reps} reps · ${day.volume.toLocaleString()} lbs</p>
-          </div>
-        </div>
-      `)
-      .join("");
+      .reverse();
+
+    recentTrainingDays.innerHTML = recentDays.length
+      ? recentDays
+          .map(day => `
+            <div class="workout-item">
+              <div>
+                <strong>${day.date}</strong>
+                <p>${day.workouts} workouts · ${day.reps} reps · ${day.volume.toLocaleString()} lbs</p>
+              </div>
+            </div>
+          `)
+          .join("")
+      : `<p class="muted">No progress data yet.</p>`;
   }
+
+  renderCharts(stats);
+}
+
+async function refreshSignedInData() {
+  await renderDashboardStats();
+  await renderCurrentTargetWeight();
+  await renderTodayWorkouts();
+  await renderProgressPage();
 }
 
 openSidebar?.addEventListener("click", openMenu);
@@ -331,6 +576,36 @@ overlay?.addEventListener("click", closeMenu);
 
 machineSelect?.addEventListener("change", renderCurrentTargetWeight);
 repsSlider?.addEventListener("input", updateRepsDisplay);
+
+authForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  try {
+    await signInUser(email, password);
+    authMessage.textContent = "";
+  } catch (error) {
+    authMessage.textContent = error.message;
+  }
+});
+
+createAccountBtn?.addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  try {
+    await createUser(email, password);
+    authMessage.textContent = "";
+  } catch (error) {
+    authMessage.textContent = error.message;
+  }
+});
+
+signOutBtn?.addEventListener("click", async () => {
+  await signOutUser();
+});
 
 workoutForm?.addEventListener("submit", async event => {
   event.preventDefault();
@@ -343,15 +618,22 @@ workoutForm?.addEventListener("submit", async event => {
   repsSlider.value = 0;
   updateRepsDisplay();
 
-  await renderTodayWorkouts();
-  await renderDashboardStats();
-  await renderCurrentTargetWeight();
+  await refreshSignedInData();
+});
+
+window.addEventListener("resize", () => {
+  renderProgressPage();
 });
 
 buildSidebar();
 loadMachineOptions();
 updateRepsDisplay();
-renderCurrentTargetWeight();
-renderTodayWorkouts();
-renderDashboardStats();
-renderProgressPage();
+
+listenForAuthChanges(async user => {
+  setSignedInUi(user);
+  redirectToHomeIfSignedOut(user);
+
+  if (user) {
+    await refreshSignedInData();
+  }
+});

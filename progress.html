@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Progess | Weights Tracker</title>
+  <title>Progress | Weights Tracker</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -15,36 +15,103 @@
     </div>
 
     <nav id="navLinks"></nav>
+
+    <div class="sidebar-user">
+      <span id="userEmail">Not signed in</span>
+      <button id="signOutBtn" class="ghost-btn hidden">Sign Out</button>
+    </div>
   </aside>
 
   <div id="overlay" class="overlay"></div>
 
   <main class="app">
-    <header class="topbar">
+    <header class="topbar progress-topbar">
       <button id="openSidebar" class="menu-btn">☰</button>
-      <h1>Progress</h1>
+      <div>
+        <h1>Progress</h1>
+        <p>Long-term training volume, reps, machine usage, and target-weight performance.</p>
+      </div>
     </header>
 
-    <section class="grid">
-      <div class="card stat">
-        <span>Total Sessions</span>
+    <section class="progress-hero card">
+      <div>
+        <span class="eyebrow">Training Overview</span>
+        <h2>Your performance over time</h2>
+        <p>These statistics are calculated from your signed-in account’s workout history.</p>
+      </div>
+
+      <div class="hero-metric">
+        <span>Current Streak</span>
+        <strong id="progressStreak">0</strong>
+        <small>training days</small>
+      </div>
+    </section>
+
+    <section class="progress-grid">
+      <div class="card stat compact-stat">
+        <span>Total Workouts</span>
         <strong id="progressSessions">0</strong>
       </div>
 
-      <div class="card stat">
+      <div class="card stat compact-stat">
         <span>Total Volume</span>
         <strong id="progressVolume">0</strong>
       </div>
 
-      <div class="card stat">
-        <span>Average Reps / Workout</span>
+      <div class="card stat compact-stat">
+        <span>Total Reps</span>
+        <strong id="progressTotalReps">0</strong>
+      </div>
+
+      <div class="card stat compact-stat">
+        <span>Average Reps</span>
         <strong id="progressAvgReps">0</strong>
       </div>
     </section>
 
+    <section class="chart-grid">
+      <div class="card chart-card">
+        <div class="chart-heading">
+          <div>
+            <h2>Volume Over Time</h2>
+            <p>Total pounds lifted per training day.</p>
+          </div>
+        </div>
+        <canvas id="volumeChart" height="220"></canvas>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-heading">
+          <div>
+            <h2>Reps Over Time</h2>
+            <p>Total reps completed per training day.</p>
+          </div>
+        </div>
+        <canvas id="repsChart" height="220"></canvas>
+      </div>
+
+      <div class="card chart-card wide-chart">
+        <div class="chart-heading">
+          <div>
+            <h2>Machine Volume</h2>
+            <p>Lifetime volume by machine.</p>
+          </div>
+        </div>
+        <canvas id="machineVolumeChart" height="260"></canvas>
+      </div>
+    </section>
+
     <section class="card">
-      <h2>Machine Breakdown</h2>
-      <div class="table-wrap">
+      <div class="section-heading">
+        <div>
+          <h2>Machine Breakdown</h2>
+          <p>Detailed performance by machine.</p>
+        </div>
+      </div>
+
+      <div id="machineCards" class="machine-card-grid"></div>
+
+      <div class="table-wrap desktop-only">
         <table class="progress-table">
           <thead>
             <tr>
@@ -53,7 +120,7 @@
               <th>Total Reps</th>
               <th>Total Volume</th>
               <th>Current Target</th>
-              <th>Completion Rate</th>
+              <th>36-Rep Rate</th>
             </tr>
           </thead>
           <tbody id="machineStatsTable"></tbody>
@@ -62,12 +129,13 @@
     </section>
 
     <section class="card">
-      <h2>Volume Over Time</h2>
-      <div id="volumeTimeline" class="timeline"></div>
-    </section>
+      <div class="section-heading">
+        <div>
+          <h2>Recent Training Days</h2>
+          <p>Your most recent logged sessions.</p>
+        </div>
+      </div>
 
-    <section class="card">
-      <h2>Recent Training Days</h2>
       <div id="recentTrainingDays" class="list"></div>
     </section>
   </main>

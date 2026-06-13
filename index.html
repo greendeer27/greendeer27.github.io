@@ -15,6 +15,11 @@
     </div>
 
     <nav id="navLinks"></nav>
+
+    <div class="sidebar-user">
+      <span id="userEmail">Not signed in</span>
+      <button id="signOutBtn" class="ghost-btn hidden">Sign Out</button>
+    </div>
   </aside>
 
   <div id="overlay" class="overlay"></div>
@@ -25,26 +30,54 @@
       <h1>Dashboard</h1>
     </header>
 
-    <section class="hero card">
-      <h2>Weights Tracker</h2>
-      <p>Track your machines, reps, target weights, and progress over time.</p>
+    <section id="authCard" class="auth-card card">
+      <div>
+        <h2>Sign in to Weights Tracker</h2>
+        <p>Your workouts, targets, and progress will be saved under your account.</p>
+      </div>
+
+      <form id="authForm" class="form">
+        <label>
+          Email
+          <input id="email" type="email" placeholder="you@example.com" required />
+        </label>
+
+        <label>
+          Password
+          <input id="password" type="password" placeholder="Password" required />
+        </label>
+
+        <div class="auth-actions">
+          <button type="submit" id="signInBtn">Sign In</button>
+          <button type="button" id="createAccountBtn" class="secondary-btn">Create Account</button>
+        </div>
+
+        <p id="authMessage" class="muted"></p>
+      </form>
     </section>
 
-    <section class="grid">
-      <div class="card stat">
-        <span>Total Workouts</span>
-        <strong id="totalWorkouts">0</strong>
-      </div>
+    <section id="dashboardContent" class="hidden">
+      <section class="hero card">
+        <h2>Weights Tracker</h2>
+        <p>Track your machines, reps, target weights, and progress over time.</p>
+      </section>
 
-      <div class="card stat">
-        <span>Total Pounds</span>
-        <strong id="totalPounds">0</strong>
-      </div>
+      <section class="grid">
+        <div class="card stat">
+          <span>Total Workouts</span>
+          <strong id="totalWorkouts">0</strong>
+        </div>
 
-      <div class="card stat">
-        <span>Total Reps</span>
-        <strong id="totalReps">0</strong>
-      </div>
+        <div class="card stat">
+          <span>Total Pounds</span>
+          <strong id="totalPounds">0</strong>
+        </div>
+
+        <div class="card stat">
+          <span>Total Reps</span>
+          <strong id="totalReps">0</strong>
+        </div>
+      </section>
     </section>
   </main>
 
